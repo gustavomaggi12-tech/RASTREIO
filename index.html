@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rastreio.com — Rastreie sua encomenda em tempo real</title>
+<meta name="description" content="Rastreie encomendas dos Correios, Jadlog, Latam Cargo, Azul Cargo e mais. Posição estimada em tempo real, previsão de entrega inteligente e mapa interativo.">
+<meta name="keywords" content="rastreio, encomenda, correios, jadlog, rastrear pacote, tracking, entrega">
+<meta name="author" content="Rastreio.com">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Rastreio.com — Rastreie sua encomenda em tempo real">
+<meta property="og:description" content="Rastreie encomendas dos Correios, Jadlog, Latam Cargo e mais com mapa interativo e posição estimada ao vivo.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rastreio.com">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rastreio.com">
+<meta name="twitter:description" content="Rastreie sua encomenda em tempo real com mapa interativo.">
+<link rel="canonical" href="https://rastreio.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Google AdSense — substitua ca-pub-XXXXXXXXXXXXXXXX após aprovação -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg:      #07090e;
+  --s1:      #0c0f18;
+  --s2:      #111520;
+  --s3:      #171c2c;
+  --s4:      #1d2338;
+  --b1:      #1e2540;
+  --b2:      #263050;
+  --acc:     #4f8fff;
+  --acc2:    #1e5fd4;
+  --grn:     #00d68f;
+  --grn2:    #009966;
+  --amb:     #f5a623;
+  --red:     #ff4566;
+  --pur:     #9b6dff;
+  --txt:     #d8e0f0;
+  --txt2:    #7a89a8;
+  --txt3:    #3a4560;
+  --mono:    'Space Mono', monospace;
+  --sans:    'Outfit', sans-serif;
+  --r:       10px;
+  --r2:      16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--sans);
+  font-size:14px;
+  display:flex;
+  flex-direction:column;
+}
+
+/* scanline overlay */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ── HEADER ── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:52px;
+  background:var(--s1);
+  border-bottom:1px solid var(--b1);
+  flex-shrink:0;
+  position:relative;z-index:100;
+}
+.logo{
+  font-family:var(--mono);font-size:16px;font-weight:700;
+  letter-spacing:-0.5px;display:flex;align-items:center;gap:6px;
+}
+.logo em{color:var(--acc);font-style:normal}
+.logo-tag{
+  font-size:9px;font-weight:400;letter-spacing:2px;
+  background:rgba(79,143,255,0.1);color:var(--acc);
+  border:1px solid rgba(79,143,255,0.2);border-radius:4px;
+  padding:2px 7px;font-family:var(--mono);
+}
+.hdr-right{
+  display:flex;align-items:center;gap:20px;
+  font-family:var(--mono);font-size:10px;color:var(--txt3);
+}
+.hdr-status{display:flex;align-items:center;gap:6px;color:var(--txt2)}
+.pulse{
+  width:6px;height:6px;border-radius:50%;background:var(--grn);
+  box-shadow:0 0 8px var(--grn);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── LAYOUT ── */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:400px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  background:var(--s1);
+  border-right:1px solid var(--b1);
+  overflow:hidden;
+}
+
+/* ── SEARCH BOX ── */
+.search-zone{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--b1);
+  flex-shrink:0;
+}
+.search-lbl{
+  font-family:var(--mono);font-size:9px;letter-spacing:2.5px;
+  color:var(--txt3);text-transform:uppercase;margin-bottom:10px;
+}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-input{
+  flex:1;background:var(--s2);
+  border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px 14px;
+  color:var(--txt);font-family:var(--mono);font-size:12px;
+  letter-spacing:1px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-input::placeholder{color:var(--txt3);font-size:11px}
+.search-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,143,255,.07)}
+.btn-track{
+  background:var(--acc);color:#fff;border:none;border-radius:var(--r);
+  padding:10px 16px;font-family:var(--sans);font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:background .15s,transform .1s;
+}
+.btn-track:hover{background:var(--acc2)}
+.btn-track:active{transform:scale(.97)}
+
+/* carrier chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  font-family:var(--mono);font-size:9px;letter-spacing:.5px;
+  color:var(--txt3);background:var(--s2);
+  border:1px solid var(--b1);border-radius:20px;
+  padding:3px 10px;cursor:pointer;transition:all .15s;
+}
+.chip:hover,.chip.on{color:var(--acc);border-color:rgba(79,143,255,.35);background:rgba(79,143,255,.07)}
+
+/* ── CONTENT SCROLL ── */
+.content{
+  flex:1;overflow-y:auto;padding:18px 20px;
+  scrollbar-width:thin;scrollbar-color:var(--b2) transparent;
+}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* ── EMPTY STATE ── */
+.empty{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:14px;text-align:center;
+  padding:20px;
+}
+.empty-icon{font-size:36px;opacity:.25}
+.empty-title{font-size:15px;font-weight:600;color:var(--txt2)}
+.empty-hint{font-family:var(--mono);font-size:10px;color:var(--txt3);line-height:1.7}
+.demo-list{width:100%;display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.demo-item{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:9px 14px;font-family:var(--mono);font-size:11px;
+  color:var(--txt2);cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:all .15s;
+}
+.demo-item:hover{border-color:rgba(79,143,255,.35);color:var(--acc);background:rgba(79,143,255,.05)}
+.demo-badge{font-size:9px;color:var(--txt3)}
+
+/* ── SKELETON ── */
+.skel{
+  background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);
+  background-size:200% 100%;animation:shim 1.4s infinite;border-radius:6px;
+}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── PACKAGE HEADER ── */
+.pkg-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.pkg-code{font-family:var(--mono);font-size:12px;color:var(--txt2);letter-spacing:1px}
+.carrier-badge{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  padding:3px 10px;border-radius:20px;letter-spacing:.5px;
+}
+
+/* ── STATUS CARD ── */
+.status-card{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:18px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.status-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+}
+.status-card.air::before{background:linear-gradient(90deg,var(--pur),var(--acc))}
+.status-card.road::before{background:linear-gradient(90deg,var(--acc),var(--grn))}
+.status-card.sea::before{background:linear-gradient(90deg,var(--acc),var(--pur))}
+
+.type-row{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  color:var(--txt3);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.type-icon{font-size:14px}
+.status-main{font-size:20px;font-weight:700;margin-bottom:3px;line-height:1.2}
+.status-sub{font-size:12px;color:var(--txt2);margin-bottom:14px}
+
+/* ETA row */
+.eta-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--s3);border-radius:8px;padding:10px 12px;margin-bottom:12px;
+}
+.eta-lbl{font-family:var(--mono);font-size:9px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase}
+.eta-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--grn)}
+.eta-conf{font-family:var(--mono);font-size:9px;color:var(--txt3)}
+
+/* progress */
+.prog-wrap{margin-top:2px}
+.prog-track{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.prog-fill.air{background:linear-gradient(90deg,var(--pur),var(--acc))}
+.prog-fill.road{background:linear-gradient(90deg,var(--acc),var(--grn))}
+.prog-fill.sea{background:linear-gradient(90deg,var(--acc2),var(--pur))}
+.prog-labels{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:9px;color:var(--txt3);
+}
+
+/* ── POSITION CARD ── */
+.pos-card{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:14px 18px;margin-bottom:12px;
+}
+.pos-title{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  color:var(--txt3);text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.live-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--red);
+  box-shadow:0 0 6px var(--red);animation:blink 1s infinite;
+}
+.pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pos-cell{background:var(--s3);border-radius:8px;padding:9px 12px}
+.pos-cell-lbl{font-family:var(--mono);font-size:9px;color:var(--txt3);margin-bottom:4px}
+.pos-cell-val{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--txt)}
+.pos-cell-val.hi{color:var(--grn)}
+
+/* ── TIMELINE ── */
+.tl-card{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:14px 18px;
+}
+.tl-header{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  color:var(--txt3);text-transform:uppercase;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tl-auto{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--txt3)}
+.tl-item{display:flex;gap:11px;padding-bottom:14px;position:relative}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:not(:last-child)::before{
+  content:'';position:absolute;left:14px;top:28px;bottom:0;
+  width:1px;background:var(--b2);
+}
+.tl-node{
+  flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+}
+.tl-node.done{background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25)}
+.tl-node.active{background:rgba(79,143,255,.15);border:1px solid rgba(79,143,255,.4);animation:ring 2s infinite}
+.tl-node.pending{background:var(--s3);border:1px solid var(--b1)}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(79,143,255,.3)}50%{box-shadow:0 0 0 4px rgba(79,143,255,.08)}}
+.tl-dot{width:7px;height:7px;border-radius:50%}
+.tl-dot.done{background:var(--grn)}
+.tl-dot.active{background:var(--acc)}
+.tl-dot.pending{background:var(--b2)}
+.tl-body{flex:1;padding-top:4px}
+.tl-event{font-size:13px;font-weight:600;margin-bottom:2px}
+.tl-event.pending{color:var(--txt3);font-weight:400}
+.tl-meta{font-family:var(--mono);font-size:10px;color:var(--txt3);display:flex;gap:8px;flex-wrap:wrap}
+.tl-pred{font-family:var(--mono);font-size:9px;color:var(--amb);margin-top:2px}
+
+/* ── MAP PANEL ── */
+.map-panel{flex:1;position:relative;background:#07090e}
+#map{width:100%;height:100%}
+.leaflet-container{background:#07090e!important}
+.leaflet-tile{filter:brightness(.55) saturate(.4) hue-rotate(195deg)}
+.leaflet-control-zoom{border:1px solid var(--b2)!important;border-radius:8px!important;overflow:hidden}
+.leaflet-control-zoom a{background:var(--s2)!important;color:var(--txt2)!important;border:none!important;width:28px!important;height:28px!important;line-height:28px!important}
+.leaflet-control-zoom a:hover{background:var(--s3)!important;color:var(--acc)!important}
+
+/* map overlays */
+.mo{position:absolute;z-index:1000}
+.map-card{
+  background:rgba(12,15,24,.92);backdrop-filter:blur(14px);
+  border:1px solid var(--b1);border-radius:var(--r2);
+  padding:12px 16px;pointer-events:all;
+}
+.map-card-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--txt3);text-transform:uppercase;margin-bottom:5px}
+.map-card-val{font-size:14px;font-weight:700}
+.map-card-sub{font-family:var(--mono);font-size:10px;color:var(--txt2);margin-top:2px}
+
+.map-top{top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:flex-start;pointer-events:none}
+.map-top .map-card{pointer-events:all}
+.spacer{flex:1}
+
+.map-bottom{bottom:14px;left:14px;display:flex;gap:8px;align-items:flex-end;pointer-events:none}
+.map-bottom .map-card{pointer-events:all}
+
+.legend-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--txt2);margin-bottom:5px}
+.legend-row:last-child{margin-bottom:0}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-line{width:14px;height:2px;border-radius:1px;flex-shrink:0}
+
+.refresh-btn{
+  background:rgba(12,15,24,.92);backdrop-filter:blur(14px);
+  border:1px solid var(--b1);border-radius:var(--r);
+  padding:9px 14px;pointer-events:all;cursor:pointer;
+  font-family:var(--mono);font-size:10px;color:var(--txt2);
+  display:flex;align-items:center;gap:7px;transition:all .15s;
+}
+.refresh-btn:hover{border-color:var(--acc);color:var(--acc)}
+.spin{display:inline-block;transition:transform .5s}
+@keyframes spinning{to{transform:rotate(360deg)}}
+.refreshing .spin{animation:spinning .8s linear infinite}
+
+/* notif */
+.notif{
+  position:fixed;top:62px;right:18px;z-index:9998;
+  background:var(--s2);border:1px solid var(--b2);border-radius:var(--r2);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transform:translateX(calc(100% + 30px));
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;max-width:300px;
+}
+.notif.show{transform:translateX(0)}
+.notif-icon{font-size:16px;flex-shrink:0}
+.notif-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.notif-sub{font-family:var(--mono);font-size:10px;color:var(--txt2)}
+
+/* leaflet tooltip dark */
+.leaflet-tooltip{
+  background:rgba(12,15,24,.95)!important;border:1px solid var(--b2)!important;
+  color:var(--txt)!important;font-family:var(--mono)!important;font-size:11px!important;
+  border-radius:6px!important;box-shadow:none!important;padding:5px 10px!important;
+}
+.leaflet-tooltip-top::before{border-top-color:var(--b2)!important}
+
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(2.8);opacity:0}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── AD BANNER ── */
+.ad-banner{
+  background:var(--s1);border-top:1px solid var(--b1);
+  padding:8px 20px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;gap:12px;
+}
+.ad-inner{
+  flex:1;background:var(--s2);border:1px dashed var(--b2);border-radius:8px;
+  padding:8px 14px;display:flex;align-items:center;gap:10px;min-height:52px;
+}
+.ad-lbl{font-family:var(--mono);font-size:9px;color:var(--txt3);letter-spacing:1px;flex-shrink:0}
+.ad-text{font-size:12px;color:var(--txt2);flex:1}
+.ad-dismiss{font-family:var(--mono);font-size:10px;color:var(--txt3);cursor:pointer;padding:4px 8px;border-radius:4px;transition:all .15s;white-space:nowrap}
+.ad-dismiss:hover{color:var(--acc);background:rgba(79,143,255,.08)}
+.btn-premium-sm{
+  background:linear-gradient(135deg,#f5a623,#e8832a);color:#fff;
+  border:none;border-radius:8px;padding:8px 16px;
+  font-family:var(--sans);font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .15s;flex-shrink:0;
+}
+.btn-premium-sm:hover{opacity:.85}
+
+/* ── PREMIUM MODAL ── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  z-index:9999;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--s1);border:1px solid var(--b2);border-radius:20px;
+  width:100%;max-width:560px;margin:20px;overflow:hidden;
+  transform:translateY(20px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-top{
+  padding:28px 28px 20px;
+  background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(79,143,255,.08));
+  border-bottom:1px solid var(--b1);text-align:center;
+}
+.modal-crown{font-size:36px;margin-bottom:10px}
+.modal-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--txt2)}
+.modal-body{padding:24px 28px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.plan{
+  background:var(--s2);border:1px solid var(--b1);border-radius:14px;
+  padding:18px;cursor:pointer;transition:all .2s;position:relative;
+}
+.plan:hover{border-color:var(--b2)}
+.plan.featured{border-color:var(--amb);background:rgba(245,166,35,.05)}
+.plan-badge{
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+  background:var(--amb);color:#1a1000;font-family:var(--mono);
+  font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;
+  white-space:nowrap;letter-spacing:.5px;
+}
+.plan-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.plan-price{font-size:24px;font-weight:700;margin-bottom:2px}
+.plan-price span{font-size:13px;font-weight:400;color:var(--txt2)}
+.plan-period{font-family:var(--mono);font-size:10px;color:var(--txt3);margin-bottom:12px}
+.plan-feat{font-family:var(--mono);font-size:10px;color:var(--txt2);line-height:1.8}
+.plan-feat li{list-style:none;padding-left:0}
+.plan-feat li::before{content:'✓  ';color:var(--grn)}
+.plan-feat li.no{color:var(--txt3)}
+.plan-feat li.no::before{content:'✗  ';color:var(--txt3)}
+.modal-feats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.feat-item{
+  background:var(--s2);border-radius:10px;padding:12px 14px;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.feat-icon{font-size:18px;flex-shrink:0}
+.feat-label{font-size:12px;font-weight:600;margin-bottom:2px}
+.feat-desc{font-family:var(--mono);font-size:10px;color:var(--txt3);line-height:1.5}
+.btn-assinar{
+  width:100%;background:linear-gradient(135deg,#f5a623,#e8832a);
+  color:#fff;border:none;border-radius:12px;padding:14px;
+  font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;margin-bottom:10px;
+}
+.btn-assinar:hover{opacity:.88}
+.modal-close-row{text-align:center}
+.modal-close-lnk{
+  font-family:var(--mono);font-size:11px;color:var(--txt3);
+  cursor:pointer;text-decoration:underline;
+}
+.modal-close-lnk:hover{color:var(--txt2)}
+
+/* premium active state */
+.premium-active .ad-banner{display:none!important}
+.premium-badge{
+  display:none;
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  background:linear-gradient(135deg,rgba(245,166,35,.2),rgba(232,131,42,.2));
+  color:var(--amb);border:1px solid rgba(245,166,35,.3);
+  border-radius:20px;padding:3px 10px;letter-spacing:.5px;
+}
+.premium-active .premium-badge{display:inline-block}
+.premium-active .btn-premium-hdr{display:none}
+
+/* ── TABS ── */
+.tab-btn{
+  flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:9px 14px;font-family:var(--mono);font-size:11px;color:var(--txt3);
+  cursor:pointer;transition:all .15s;
+}
+.tab-btn.active{background:rgba(79,143,255,.1);border-color:rgba(79,143,255,.35);color:var(--acc)}
+.tab-btn:hover:not(.active){color:var(--txt2);border-color:var(--b2)}
+
+/* ── ADS ── */
+.ad-zone{
+  background:var(--s1);border-top:1px solid var(--b1);
+  padding:0;flex-shrink:0;overflow:hidden;
+  max-height:120px;transition:max-height .4s ease;
+}
+.premium-active .ad-zone{max-height:0!important;border:none}
+.ad-slot{
+  width:100%;min-height:90px;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.ad-slot-lbl{
+  position:absolute;top:4px;left:8px;
+  font-family:var(--mono);font-size:8px;color:var(--txt3);letter-spacing:1px;
+}
+/* Video ad overlay */
+.video-ad-wrap{
+  position:fixed;bottom:80px;right:20px;z-index:8000;
+  width:320px;border-radius:14px;overflow:hidden;
+  border:1px solid var(--b2);box-shadow:0 8px 32px rgba(0,0,0,.6);
+  display:none;
+}
+.premium-active .video-ad-wrap{display:none!important}
+.video-ad-wrap.show{display:block}
+.video-ad-header{
+  background:var(--s1);padding:8px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.video-ad-lbl{font-family:var(--mono);font-size:9px;color:var(--txt3);letter-spacing:1px}
+.video-ad-skip{
+  font-family:var(--mono);font-size:9px;color:var(--txt3);
+  cursor:pointer;padding:3px 8px;border-radius:4px;
+  transition:all .15s;border:1px solid transparent;
+}
+.video-ad-skip:hover,.video-ad-skip.active{color:var(--acc);border-color:rgba(79,143,255,.3)}
+.video-ad-body{background:#000;aspect-ratio:16/9;position:relative}
+.video-ad-body video{width:100%;height:100%;object-fit:cover}
+.video-ad-cta{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.85));
+  padding:20px 12px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.video-ad-title{font-size:12px;font-weight:600;color:#fff}
+.video-ad-btn{
+  background:var(--amb);color:#1a1000;border:none;border-radius:6px;
+  padding:5px 12px;font-family:var(--mono);font-size:10px;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+}
+.video-timer{
+  font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.6);
+  background:rgba(0,0,0,.5);padding:3px 8px;border-radius:4px;
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo">rastreio<em>.</em>com <span class="logo-tag">LIVE</span></div>
+  <div class="hdr-right">
+    <div class="hdr-status"><span class="pulse"></span><span>APIs online</span></div>
+    <span id="clk">--:--:--</span>
+    <span class="premium-badge">✦ PREMIUM</span>
+    <button class="btn-premium-sm btn-premium-hdr" onclick="openPremium()">✦ Premium</button>
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="search-zone">
+      <div class="search-lbl">Código de rastreio</div>
+      <div class="search-row">
+        <input class="search-input" id="inp" placeholder="Ex: AA123456789BR" maxlength="40" autocomplete="off">
+        <button class="btn-track" id="btnTrack">Rastrear</button>
+      </div>
+      <div class="chips" id="chips">
+        <span class="chip on" data-c="correios">Correios</span>
+        <span class="chip" data-c="jadlog">Jadlog</span>
+        <span class="chip" data-c="latam">Latam Cargo</span>
+        <span class="chip" data-c="azul">Azul Cargo</span>
+        <span class="chip" data-c="mercado">Mercado Envios</span>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty">
+        <div class="empty-icon">◈</div>
+        <div class="empty-title">Nenhum rastreio ativo</div>
+        <div class="empty-hint">Digite o código acima ou clique<br>em um exemplo para testar</div>
+        <div class="demo-list">
+          <div class="demo-item" onclick="loadDemo('correios')">
+            <span>AA987654321BR — Correios</span>
+            <span class="demo-badge">📮 Entregando hoje</span>
+          </div>
+          <div class="demo-item" onclick="loadDemo('road')">
+            <span>JD827364917BR — Jadlog</span>
+            <span class="demo-badge">🚚 Terrestre em rota</span>
+          </div>
+          <div class="demo-item" onclick="loadDemo('air')">
+            <span>LA2841 — Latam Cargo</span>
+            <span class="demo-badge">✈ Voo em progresso</span>
+          </div>
+          <div class="demo-item" onclick="loadDemo('sea')">
+            <span>COSCO-BQ-8847</span>
+            <span class="demo-badge">🚢 Atlântico Sul</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-panel">
+    <div id="map"></div>
+
+    <div class="mo map-top" id="mapTop" style="display:none">
+      <div class="map-card">
+        <div class="map-card-lbl" id="mInfoLbl">Posição</div>
+        <div class="map-card-val" id="mInfoVal">—</div>
+        <div class="map-card-sub" id="mInfoSub">—</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="map-card">
+        <div class="map-card-lbl">ETA prevista</div>
+        <div class="map-card-val" id="mEtaVal" style="color:var(--grn)">—</div>
+        <div class="map-card-sub" id="mEtaSub">análise de padrões</div>
+      </div>
+    </div>
+
+    <div class="mo map-bottom" id="mapBottom" style="display:none">
+      <div class="map-card">
+        <div class="legend-row"><div class="leg-dot" style="background:var(--grn)"></div><span>Posição atual</span></div>
+        <div class="legend-row" id="legRoute" style="display:none"><div class="leg-line" style="background:var(--acc)"></div><span>Rota percorrida</span></div>
+        <div class="legend-row" id="legEst" style="display:none"><div class="leg-line" style="background:var(--amb);opacity:.6"></div><span>Rota estimada</span></div>
+        <div class="legend-row"><div class="leg-dot" style="background:var(--red)"></div><span>Destino</span></div>
+      </div>
+      <div class="refresh-btn" id="refBtn" onclick="refreshNow()">
+        <span class="spin" id="spinIcon">↻</span>
+        <span id="refLbl">Atualizar</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- AD ZONE (some for free users) -->
+<div class="ad-zone" id="adZone">
+  <!-- Google AdSense horizontal banner 728x90 -->
+  <!-- SUBSTITUA o ca-pub e data-ad-slot pela sua conta aprovada no AdSense -->
+  <div class="ad-slot">
+    <span class="ad-slot-lbl">PUBLICIDADE</span>
+    <!--
+      ADSENSE — COMO ATIVAR:
+      1. Crie conta em https://adsense.google.com
+      2. Adicione seu domínio e aguarde aprovação (1-14 dias)
+      3. Descomente o bloco <ins> abaixo com seu ca-pub e ad-slot
+    -->
+    <!-- <ins class="adsbygoogle"
+         style="display:block;width:100%;height:90px"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="XXXXXXXXXX"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+    <div style="display:flex;align-items:center;gap:16px;width:100%;padding:0 16px;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">📦</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--txt)">SEDEX e PAC — Correios · Para todo o Brasil</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--txt3)">Publicidade</div>
+        </div>
+      </div>
+      <button onclick="openPremium()" style="background:linear-gradient(135deg,#f5a623,#e8832a);color:#1a1000;border:none;border-radius:8px;padding:6px 12px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">✦ Sem anúncios</button>
+    </div>
+  </div>
+        <div style="font-size:22px">📦</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--txt)">Envie com os Correios — SEDEX e PAC para todo o Brasil</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--txt3)">Publicidade · correios.com.br</div>
+        </div>
+      </div>
+      <button onclick="openPremium()" style="background:linear-gradient(135deg,#f5a623,#e8832a);color:#1a1000;border:none;border-radius:8px;padding:7px 14px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">✦ Remover anúncios</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIDEO AD (aparece após 10s de uso) -->
+<div class="video-ad-wrap" id="videoAdWrap">
+  <div class="video-ad-header">
+    <span class="video-ad-lbl">ANÚNCIO · <span id="videoAdTimer">pule em 5s</span></span>
+    <span class="video-ad-skip" id="skipBtn" onclick="skipVideoAd()">✕ pular</span>
+  </div>
+  <div class="video-ad-body">
+    <!-- Google IMA SDK para video ads reais -->
+    <!-- Para ativar: crie conta Google Ad Manager (admanager.google.com)
+         e substitua este bloco pelo player IMA:
+    <div id="adContainer"></div>
+    <video id="contentElement" src="seu-video.mp4"></video>
+    -->
+    <!-- Placeholder de vídeo até integração IMA -->
+    <video id="adVideo" autoplay muted loop playsinline
+      style="width:100%;height:100%;object-fit:cover"
+      poster="https://via.placeholder.com/320x180/0c0f18/4f8fff?text=Anúncio">
+      <!-- Sem fonte real até ter conta Ad Manager / Google IMA aprovada -->
+    </video>
+    <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(12,15,24,.9),rgba(26,31,46,.85));display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;text-align:center">
+      <div style="font-size:28px">🚀</div>
+      <div style="font-size:14px;font-weight:700;color:#fff">Remova este anúncio</div>
+      <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.6)">Premium vitalício por apenas R$50</div>
+      <button onclick="openPremium()" style="background:linear-gradient(135deg,#f5a623,#e8832a);color:#1a1000;border:none;border-radius:8px;padding:9px 20px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer">✦ Ver planos</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREMIUM MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closePremiumOutside(event)">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-top">
+      <div class="modal-crown">✦</div>
+      <div class="modal-title">Rastreio<span style="color:var(--amb)">.com</span> Premium</div>
+      <div class="modal-sub">Acesso vitalício por R$50 — pague uma vez, use para sempre</div>
+    </div>
+    <div class="modal-body">
+
+      <!-- tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button class="tab-btn active" id="tabPix" onclick="switchTab('pix')">📱 Pix</button>
+        <button class="tab-btn" id="tabFeats" onclick="switchTab('feats')">✦ Benefícios</button>
+      </div>
+
+      <!-- PIX TAB -->
+      <div id="panePix">
+        <div id="pixStateInit" style="text-align:center;padding:20px 0">
+          <div style="font-size:40px;margin-bottom:12px">📱</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Pague R$50 via Pix</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--txt3);margin-bottom:20px">Acesso vitalício · pague uma vez · use para sempre</div>
+          <button class="btn-assinar" onclick="gerarPix()">Gerar QR Code Pix</button>
+        </div>
+        <div id="pixStateQR" style="display:none"></div>
+        <div id="pixStateOK" style="display:none;text-align:center;padding:24px 0">
+          <div style="font-size:48px;margin-bottom:12px">✅</div>
+          <div style="font-size:18px;font-weight:700;color:var(--grn);margin-bottom:6px">Pagamento confirmado!</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--txt3)">Acesso vitalício liberado</div>
+        </div>
+      </div>
+
+      <!-- FEATS TAB -->
+      <div id="paneFeats" style="display:none">
+        <div class="plans">
+          <div class="plan">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">R$0<span>/sempre</span></div>
+            <ul class="plan-feat" style="margin-top:10px">
+              <li>1 rastreio por vez</li>
+              <li>Mapa interativo</li>
+              <li>Posição estimada</li>
+              <li class="no">Sem anúncios</li>
+              <li class="no">Multi-rastreio</li>
+              <li class="no">Alertas</li>
+              <li class="no">Histórico</li>
+            </ul>
+          </div>
+          <div class="plan featured">
+            <div class="plan-badge">VITALÍCIO R$50</div>
+            <div class="plan-name">Premium</div>
+            <div class="plan-price">R$50<span> único</span></div>
+            <ul class="plan-feat" style="margin-top:10px">
+              <li>Rastreios ilimitados</li>
+              <li>Mapa interativo</li>
+              <li>Posição estimada</li>
+              <li>Sem anúncios</li>
+              <li>Multi-rastreio</li>
+              <li>Alertas por email</li>
+              <li>Histórico 90 dias</li>
+            </ul>
+          </div>
+        </div>
+        <button class="btn-assinar" onclick="switchTab('pix')">📱 Pagar com Pix agora</button>
+      </div>
+
+      <div class="modal-close-row" style="margin-top:12px">
+        <span class="modal-close-lnk" onclick="closePremium()">Continuar com a versão gratuita</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF --><!-- NOTIF -->
+<div class="notif" id="notif">
+  <span class="notif-icon" id="notifIcon">📦</span>
+  <div><div class="notif-title" id="notifTitle">—</div><div class="notif-sub" id="notifSub">—</div></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// INJECT pulse-ring keyframe into a style tag for Leaflet icons
+const _ks = document.createElement('style');
+_ks.textContent = `@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(2.8);opacity:0}}`;
+document.head.appendChild(_ks);
+
+// ─── MAP ─────────────────────────────────────────────────────────────────────
+const map = L.map('map', {center:[-15,-48], zoom:4, zoomControl:false, attributionControl:false});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let _layers   = [];   // map layers to clear
+let _planeTimer = null; // animation timer reference
+let _planeMarker = null;
+let _planeRoute = [];
+let _planeIdx = 0;
+let _refreshTimer = null;
+let _countdown = 60;
+let _currentDemo = null;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function haversine(a, b) {
+  const R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLon=(b[1]-a[1])*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function bearing(a,b) {
+  const dLon=(b[1]-a[1])*Math.PI/180;
+  const y=Math.sin(dLon)*Math.cos(b[0]*Math.PI/180);
+  const x=Math.cos(a[0]*Math.PI/180)*Math.sin(b[0]*Math.PI/180)-Math.sin(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.cos(dLon);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+function interp(a,b,t) {
+  const e=t<.5?2*t*t:-1+(4-2*t)*t;
+  return [a[0]+(b[0]-a[0])*e, a[1]+(b[1]-a[1])*e];
+}
+function predictETA(events) {
+  const ts=events.filter(e=>e.ts).map(e=>e.ts);
+  if(ts.length<2) return null;
+  const gaps=[];
+  for(let i=1;i<ts.length;i++) gaps.push(ts[i]-ts[i-1]);
+  let ws=0,wt=0;
+  gaps.forEach((g,i)=>{ws+=g*(i+1);wt+=(i+1)});
+  const avg=ws/wt;
+  const remain=Math.max(1, events.filter(e=>e.state==='pending').length);
+  return new Date(Date.now()+avg*remain);
+}
+function fmtETA(d) {
+  if(!d) return 'Calculando...';
+  const now=new Date(); const diff=(d-now)/86400000;
+  if(diff<0) return 'Hoje';
+  if(diff<1) return 'Hoje';
+  if(diff<2) return 'Amanhã';
+  return d.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
+}
+
+// ─── ICONS ───────────────────────────────────────────────────────────────────
+function dotIcon(color, pulse=false) {
+  const p=pulse?`<div style="position:absolute;inset:-7px;border-radius:50%;border:2px solid ${color};opacity:.4;animation:pulse-ring 2s infinite"></div>`:'';
+  return L.divIcon({html:`<div style="position:relative;width:14px;height:14px">
+    <div style="width:14px;height:14px;border-radius:50%;background:${color};box-shadow:0 0 10px ${color};border:2px solid rgba(255,255,255,.25)"></div>${p}
+  </div>`,className:'',iconAnchor:[7,7]});
+}
+function emojiIcon(e,sz=28,rot=0) {
+  return L.divIcon({
+    html:`<div style="font-size:${sz}px;line-height:1;transform:rotate(${rot}deg);filter:drop-shadow(0 2px 6px rgba(0,0,0,.9))">${e}</div>`,
+    className:'',iconAnchor:[sz/2,sz/2]
+  });
+}
+function portIcon(done) {
+  const c=done?'#7a89a8':'#ff4566';
+  return L.divIcon({html:`<div style="width:9px;height:9px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,.25)"></div>`,className:'',iconAnchor:[4,4]});
+}
+
+// ─── MAP CLEAR ───────────────────────────────────────────────────────────────
+function clearMap() {
+  // Stop plane animation FIRST before removing marker
+  if(_planeTimer!==null) { clearTimeout(_planeTimer); _planeTimer=null; }
+  // Remove plane marker
+  if(_planeMarker!==null) { map.removeLayer(_planeMarker); _planeMarker=null; }
+  // Remove other layers
+  _layers.forEach(l=>map.removeLayer(l));
+  _layers=[];
+  _planeRoute=[];
+  _planeIdx=0;
+}
+function addL(l) { l.addTo(map); _layers.push(l); return l; }
+
+// ─── PLANE ANIMATION (safe: checks marker exists before moving) ───────────────
+function animatePlane() {
+  // Guard: if marker was removed, stop
+  if(_planeMarker===null) return;
+  _planeIdx++;
+  if(_planeIdx>=_planeRoute.length) _planeIdx=0;
+  _planeMarker.setLatLng(_planeRoute[_planeIdx]);
+  // Schedule next frame
+  _planeTimer=setTimeout(animatePlane, 600);
+}
+
+// ─── NOTIFY ──────────────────────────────────────────────────────────────────
+function notify(title,sub,icon='📦') {
+  document.getElementById('notifTitle').textContent=title;
+  document.getElementById('notifSub').textContent=sub;
+  document.getElementById('notifIcon').textContent=icon;
+  const el=document.getElementById('notif');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),4200);
+}
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+function tick() {
+  document.getElementById('clk').textContent=
+    new Date().toLocaleTimeString('pt-BR',{hour12:false})+' BRT';
+}
+tick(); setInterval(tick,1000);
+
+// ─── REFRESH ─────────────────────────────────────────────────────────────────
+function startRefresh() {
+  if(_refreshTimer) clearInterval(_refreshTimer);
+  _countdown=60;
+  document.getElementById('refLbl').textContent='Atualiza em 60s';
+  _refreshTimer=setInterval(()=>{
+    _countdown--;
+    document.getElementById('refLbl').textContent=`Atualiza em ${_countdown}s`;
+    if(_countdown<=0) { _countdown=60; autoUpdate(); }
+  },1000);
+}
+function refreshNow() {
+  const btn=document.getElementById('refBtn');
+  btn.classList.add('refreshing');
+  setTimeout(()=>{btn.classList.remove('refreshing'); autoUpdate();},900);
+}
+function autoUpdate() {
+  if(!_currentDemo) return;
+  // Road: nudge position slightly toward destination
+  const d=_currentDemo;
+  if((d.type==='road'||d.type==='correios') && d.lastPos) {
+    const step=0.008;
+    d.lastPos=[
+      d.lastPos[0]+(d.destLL[0]-d.lastPos[0])*step,
+      d.lastPos[1]+(d.destLL[1]-d.lastPos[1])*step
+    ];
+    renderRoadMap(d);
+  }
+  notify('Posição atualizada', d.code, d.icon||'📦');
+}
+
+// ─── MAP OVERLAYS SHOW/HIDE ───────────────────────────────────────────────────
+function showMapUI(infoLbl,infoVal,infoSub,etaVal) {
+  document.getElementById('mapTop').style.display='flex';
+  document.getElementById('mapBottom').style.display='flex';
+  document.getElementById('mInfoLbl').textContent=infoLbl;
+  document.getElementById('mInfoVal').textContent=infoVal;
+  document.getElementById('mInfoSub').textContent=infoSub;
+  document.getElementById('mEtaVal').textContent=etaVal;
+  document.getElementById('legRoute').style.display='flex';
+  document.getElementById('legEst').style.display='flex';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEMO DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const DEMOS = {
+
+  correios: {
+    code:'AA987654321BR', carrier:'Correios', cColor:'#ffcc00',
+    type:'correios', icon:'📮',
+    originLL:[-3.1190,-60.0217], destLL:[-23.5505,-46.6333],
+    lastPos:[-15.78,-47.93],
+    lastPosTime: Date.now()-4*3600000,
+    avgKmh:60,
+    waypoints:[
+      [-3.1190,-60.0217],  // Manaus
+      [-8.76,-63.90],      // Porto Velho
+      [-12.97,-38.50],     // transbordo aéreo
+      [-15.78,-47.93],     // Brasília (última leitura)
+      [-23.5505,-46.6333]  // São Paulo
+    ],
+    status:'Em trânsito', sub:'CTE Recife · Rota MAO→SP',
+    progress:62,
+    events:[
+      {state:'done',  ev:'Objeto postado',                    loc:'Manaus, AM',            time:'26 Abr 10:00', ts:Date.now()-4*86400000},
+      {state:'done',  ev:'Postado na agência',                loc:'Ag. Correios Manaus',   time:'26 Abr 10:30', ts:Date.now()-3.9*86400000},
+      {state:'done',  ev:'Em trânsito para tratamento',       loc:'CTE Manaus',            time:'26 Abr 18:00', ts:Date.now()-3.5*86400000},
+      {state:'done',  ev:'Encaminhado para São Paulo',        loc:'CTE Manaus',            time:'27 Abr 02:00', ts:Date.now()-3*86400000},
+      {state:'active',ev:'Em trânsito — rota MAO → SP',      loc:'Região Nordeste (est.)',time:'agora',        ts:Date.now()},
+      {state:'pending',ev:'Chegada à unidade de tratamento',  loc:'CTE São Paulo',         time:null,           ts:null},
+      {state:'pending',ev:'Saiu para entrega',                loc:'São Paulo, SP',         time:null,           ts:null},
+      {state:'pending',ev:'Entregue ao destinatário',         loc:'São Paulo, SP',         time:null,           ts:null},
+    ]
+  },
+
+  road: {
+    code:'JD827364917BR', carrier:'Jadlog', cColor:'#ff6b00',
+    type:'road', icon:'🚚',
+    originLL:[-25.4284,-49.2733], destLL:[-22.9068,-43.1729],
+    lastPos:[-23.55,-46.63],
+    lastPosTime: Date.now()-2.5*3600000,
+    avgKmh:80,
+    waypoints:[[-25.4284,-49.2733],[-24.05,-48.63],[-23.55,-46.63],[-22.9068,-43.1729]],
+    status:'Em trânsito', sub:'Rota BR-116 · Última leitura: São Paulo',
+    progress:55,
+    events:[
+      {state:'done',   ev:'Coleta realizada',           loc:'Curitiba, PR',      time:'ontem 14:30', ts:Date.now()-18*3600000},
+      {state:'done',   ev:'Triagem na filial',          loc:'Jadlog CWB Hub',    time:'ontem 17:45', ts:Date.now()-15*3600000},
+      {state:'done',   ev:'Saída para São Paulo',       loc:'Curitiba, PR',      time:'ontem 22:00', ts:Date.now()-10*3600000},
+      {state:'done',   ev:'Chegada hub SP',             loc:'São Paulo, SP',     time:'06:30',       ts:Date.now()-3*3600000},
+      {state:'active', ev:'Em trânsito → Rio de Janeiro',loc:'~185km de Rio',   time:'agora',       ts:Date.now()},
+      {state:'pending',ev:'Chegada no hub RJ',          loc:'Rio de Janeiro, RJ',time:null,          ts:null},
+      {state:'pending',ev:'Saída para entrega',         loc:'Rio de Janeiro, RJ',time:null,          ts:null},
+      {state:'pending',ev:'Entregue',                   loc:'Rio de Janeiro, RJ',time:null,          ts:null},
+    ]
+  },
+
+  air: {
+    code:'LA2841', carrier:'Latam Cargo', cColor:'#e0173c',
+    type:'air', icon:'✈',
+    originLL:[-23.4356,-46.4731], destLL:[-3.0386,-60.0497],
+    status:'Em voo', sub:'LA2841 · Alt 11.280m · 820 km/h',
+    progress:62,
+    flightData:{altitude:11280,speed:820,heading:316},
+    events:[
+      {state:'done',   ev:'Carga recebida em GRU',      loc:'São Paulo, SP',        time:'06:15', ts:Date.now()-5*3600000},
+      {state:'done',   ev:'Liberação alfandegária',     loc:'GRU — Alfândega',      time:'07:40', ts:Date.now()-3*3600000},
+      {state:'done',   ev:'Embarcado em aeronave',      loc:'GRU — Terminal Cargas',time:'09:20', ts:Date.now()-2*3600000},
+      {state:'active', ev:'Em voo → MAO',               loc:'AM airspace',          time:'agora', ts:Date.now()},
+      {state:'pending',ev:'Desembarque em Manaus',      loc:'MAO',                  time:null,    ts:null},
+      {state:'pending',ev:'Distribuição local',         loc:'Manaus, AM',           time:null,    ts:null},
+    ]
+  },
+
+  sea: {
+    code:'COSCO-BQ-8847', carrier:'COSCO Shipping', cColor:'#0066cc',
+    type:'sea', icon:'🚢',
+    originLL:[31.2304,121.4737], destLL:[-23.9617,-46.3322],
+    shipPos:[-22.0,-35.5],
+    status:'Em alto mar', sub:'COSCO BEIJING · 18 nós · Atlântico Sul',
+    progress:78,
+    ports:[
+      {name:'Shanghai',    ll:[31.2304,121.4737], done:true,  date:'12 Mar'},
+      {name:'Singapura',   ll:[1.3521,103.8198],  done:true,  date:'18 Mar'},
+      {name:'Colombo',     ll:[6.9271,79.8612],   done:true,  date:'23 Mar'},
+      {name:'Cape Town',   ll:[-33.9249,18.4241], done:true,  date:'05 Abr'},
+      {name:'Santos',      ll:[-23.9617,-46.3322],done:false, date:'22 Abr (prev)'},
+    ],
+    events:[
+      {state:'done',   ev:'Embarcado em Shanghai',  loc:'Shanghai, CHN', time:'12 Mar', ts:Date.now()-37*86400000},
+      {state:'done',   ev:'Escala em Singapura',    loc:'Singapura',     time:'18 Mar', ts:Date.now()-31*86400000},
+      {state:'done',   ev:'Escala em Colombo',      loc:'Sri Lanka',     time:'23 Mar', ts:Date.now()-26*86400000},
+      {state:'done',   ev:'Escala em Cape Town',    loc:'África do Sul', time:'05 Abr', ts:Date.now()-13*86400000},
+      {state:'active', ev:'Em navegação → Santos',  loc:'Atlântico Sul', time:'agora',  ts:Date.now()},
+      {state:'pending',ev:'Chegada ao porto Santos', loc:'Santos, SP',   time:null,     ts:null},
+      {state:'pending',ev:'Desembaraço aduaneiro',  loc:'Santos, SP',   time:null,     ts:null},
+    ]
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER SIDEBAR
+// ─────────────────────────────────────────────────────────────────────────────
+function renderSidebar(d) {
+  const eta=predictETA(d.events);
+  const etaStr=fmtETA(eta);
+  const typeLabel={air:'FRETE AÉREO',road:'FRETE TERRESTRE',correios:'CORREIOS',sea:'FRETE MARÍTIMO'}[d.type];
+  const typeIcon={air:'✈',road:'🚚',correios:'📮',sea:'🚢'}[d.type];
+
+  // position section
+  let posHTML='';
+  if(d.type==='road'||d.type==='correios') {
+    const distRem=haversine(d.lastPos,d.destLL);
+    const etaH=distRem/d.avgKmh;
+    const etaT=new Date(Date.now()+etaH*3600000);
+    posHTML=`
+    <div class="pos-card">
+      <div class="pos-title"><span class="live-dot"></span>POSIÇÃO ESTIMADA AGORA</div>
+      <div class="pos-grid">
+        <div class="pos-cell"><div class="pos-cell-lbl">Dist. ao destino</div><div class="pos-cell-val hi">${Math.round(distRem)} km</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">ETA chegada</div><div class="pos-cell-val hi">${etaT.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Velocidade estimada</div><div class="pos-cell-val">${d.avgKmh} km/h</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Posição aprox.</div><div class="pos-cell-val">${d.lastPos[0].toFixed(2)}°, ${d.lastPos[1].toFixed(2)}°</div></div>
+      </div>
+    </div>`;
+  } else if(d.type==='air') {
+    posHTML=`
+    <div class="pos-card">
+      <div class="pos-title"><span class="live-dot"></span>DADOS DO VOO — AO VIVO</div>
+      <div class="pos-grid">
+        <div class="pos-cell"><div class="pos-cell-lbl">Voo</div><div class="pos-cell-val">${d.code}</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Altitude</div><div class="pos-cell-val hi">${d.flightData.altitude.toLocaleString()} m</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Velocidade</div><div class="pos-cell-val">${d.flightData.speed} km/h</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Rumo</div><div class="pos-cell-val">${d.flightData.heading}°</div></div>
+      </div>
+    </div>`;
+  } else if(d.type==='sea') {
+    const distRem=haversine(d.shipPos,d.destLL);
+    posHTML=`
+    <div class="pos-card">
+      <div class="pos-title"><span class="live-dot"></span>POSIÇÃO AIS — NAVIO</div>
+      <div class="pos-grid">
+        <div class="pos-cell"><div class="pos-cell-lbl">Latitude/Longitude</div><div class="pos-cell-val">${d.shipPos[0].toFixed(1)}°, ${d.shipPos[1].toFixed(1)}°</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Dist. a Santos</div><div class="pos-cell-val hi">${Math.round(distRem)} km</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">Velocidade</div><div class="pos-cell-val">18 nós</div></div>
+        <div class="pos-cell"><div class="pos-cell-lbl">ETA porto</div><div class="pos-cell-val hi">22 Abr</div></div>
+      </div>
+    </div>`;
+  }
+
+  // timeline
+  const tlHTML=d.events.map(ev=>`
+    <div class="tl-item">
+      <div class="tl-node ${ev.state}"><div class="tl-dot ${ev.state}"></div></div>
+      <div class="tl-body">
+        <div class="tl-event ${ev.state==='pending'?'pending':''}">${ev.ev}</div>
+        <div class="tl-meta"><span>${ev.loc}</span>${ev.time?`<span>${ev.time}</span>`:''}</div>
+        ${ev.ts===null?`<div class="tl-pred">⟳ previsão por análise de padrões</div>`:''}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('content').innerHTML=`
+    <div class="pkg-meta">
+      <span class="pkg-code">${d.code}</span>
+      <span class="carrier-badge" style="background:${d.cColor}20;color:${d.cColor};border:1px solid ${d.cColor}40">${d.carrier}</span>
+    </div>
+    <div class="status-card ${d.type==='correios'?'road':d.type}">
+      <div class="type-row"><span class="type-icon">${typeIcon}</span>${typeLabel}</div>
+      <div class="status-main">${d.status}</div>
+      <div class="status-sub">${d.sub}</div>
+      <div class="eta-row">
+        <div><div class="eta-lbl">ETA prevista</div><div class="eta-val">${etaStr}</div></div>
+        <div style="text-align:right"><div class="eta-conf">análise de padrões</div></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-track"><div class="prog-fill ${d.type==='correios'?'road':d.type}" style="width:${d.progress}%"></div></div>
+        <div class="prog-labels"><span>${d.type==='air'?'GRU':d.type==='sea'?'Shanghai':'Origem'}</span><span>${d.progress}%</span><span>Destino</span></div>
+      </div>
+    </div>
+    ${posHTML}
+    <div class="tl-card">
+      <div class="tl-header">HISTÓRICO <div class="tl-auto"><span class="pulse"></span><span>auto</span></div></div>
+      ${tlHTML}
+    </div>
+  `;
+
+  showMapUI(
+    typeIcon+' '+typeLabel,
+    d.status,
+    `${d.carrier} · ${d.code}`,
+    etaStr
+  );
+  document.getElementById('mEtaSub').textContent='análise de padrões';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER MAPS
+// ─────────────────────────────────────────────────────────────────────────────
+function renderMap(d) {
+  clearMap();
+  if(d.type==='air')              renderAirMap(d);
+  else if(d.type==='sea')         renderSeaMap(d);
+  else                            renderRoadMap(d);
+}
+
+function renderRoadMap(d) {
+  const {originLL, destLL, waypoints, lastPos, avgKmh} = d;
+
+  // t = fração do segmento lastPos→próximo waypoint já percorrida (0..0.85)
+  const elapsed = Math.max(0,(Date.now()-(d.lastPosTime||Date.now()-3600000))/3600000);
+  const distRem  = haversine(lastPos, destLL);
+  const etaH     = Math.max(distRem/avgKmh, 0.01);
+  const t        = Math.min(elapsed/etaH, 0.85);
+
+  // Waypoint mais próximo do lastPos
+  let splitIdx=0, minDist=Infinity;
+  waypoints.forEach((wp,i)=>{ const d2=haversine(lastPos,wp); if(d2<minDist){minDist=d2;splitIdx=i;} });
+
+  // Linha azul: origem → waypoints percorridos → lastPos
+  const trav=[...waypoints.slice(0,splitIdx+1)];
+  if(haversine(lastPos,waypoints[splitIdx])>1) trav.push(lastPos);
+  addL(L.polyline(trav,{color:'#4f8fff',weight:3,opacity:.9}));
+
+  // Linha amarela tracejada: lastPos → destino pelos waypoints restantes
+  const remaining=[lastPos,...waypoints.slice(splitIdx+1), destLL];
+  addL(L.polyline(remaining,{color:'#f5a623',weight:2,opacity:.55,dashArray:'10 6'}));
+
+  // Marcadores fixos
+  addL(L.marker(originLL,{icon:dotIcon('#7a89a8')}).bindTooltip('📦 Origem'));
+  addL(L.marker(destLL,  {icon:dotIcon('#ff4566',true)}).bindTooltip('📍 Destino'));
+  addL(L.marker(lastPos, {icon:dotIcon('#7a89a8')}).bindTooltip('📡 Última leitura'));
+
+  // Posição estimada: avanço linear de lastPos → próximo waypoint
+  const nextWP = waypoints[Math.min(splitIdx+1, waypoints.length-1)];
+  const estPos = [
+    lastPos[0]+(nextWP[0]-lastPos[0])*t,
+    lastPos[1]+(nextWP[1]-lastPos[1])*t
+  ];
+
+  const estIcon=L.divIcon({html:`
+    <div style="position:relative;width:16px;height:16px">
+      <div style="width:16px;height:16px;border-radius:50%;background:#00d68f;border:2px solid rgba(255,255,255,.3);box-shadow:0 0 12px #00d68f"></div>
+      <div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(0,214,143,.25);animation:pulse-ring 2s infinite"></div>
+    </div>`,className:'',iconAnchor:[8,8]});
+  addL(L.marker(estPos,{icon:estIcon}).bindTooltip('🔵 Posição estimada agora'));
+  addL(L.marker(estPos,{icon:emojiIcon('🚚',24)}).bindTooltip('Em trânsito'));
+
+  map.fitBounds(L.latLngBounds([originLL,destLL]).pad(.15));
+}
+
+function renderAirMap(d) {
+  const {originLL:oLL, destLL:dLL, progress} = d;
+
+  // build great-circle-ish arc
+  const steps=60, route=[];
+  for(let i=0;i<=steps;i++) {
+    const t=i/steps;
+    const lat=oLL[0]+(dLL[0]-oLL[0])*t;
+    const lng=oLL[1]+(dLL[1]-oLL[1])*t;
+    const arc=Math.sin(t*Math.PI)*2.5;
+    route.push([lat+arc*.35, lng]);
+  }
+  _planeRoute=route;
+
+  const tIdx=Math.round((progress/100)*steps);
+  addL(L.polyline(route.slice(0,tIdx+1),{color:'#4f8fff',weight:3,opacity:.9}));
+  addL(L.polyline(route.slice(tIdx),    {color:'#4f8fff',weight:2,opacity:.3,dashArray:'8 5'}));
+
+  addL(L.marker(oLL,{icon:dotIcon('#7a89a8')}).bindTooltip(`✈ Origem: ${d.code}`));
+  addL(L.marker(dLL,{icon:dotIcon('#ff4566',true)}).bindTooltip(`📍 Destino`));
+
+  const curPos=route[tIdx];
+  const hdg=bearing(curPos,dLL);
+
+  // Create plane marker and store reference
+  _planeMarker=L.marker(curPos,{icon:emojiIcon('✈',26,hdg-90)}).addTo(map);
+  _planeMarker.bindTooltip(`✈ ${d.code} — Em voo`);
+  _planeIdx=tIdx;
+
+  // Start animation (safe — planeMarker is definitely set)
+  _planeTimer=setTimeout(animatePlane,600);
+
+  map.fitBounds(L.latLngBounds([oLL,dLL]).pad(.15));
+}
+
+function renderSeaMap(d) {
+  const allPts=d.ports.map(p=>p.ll);
+  const donePts=d.ports.filter(p=>p.done).map(p=>p.ll);
+
+  addL(L.polyline(allPts,{color:'#4f8fff',weight:2,opacity:.4}));
+  if(donePts.length>1) addL(L.polyline(donePts,{color:'#4f8fff',weight:3,opacity:.85}));
+  addL(L.polyline([d.shipPos,d.destLL],{color:'#f5a623',weight:2,opacity:.45,dashArray:'10 6'}));
+
+  d.ports.forEach(p=>{
+    addL(L.marker(p.ll,{icon:portIcon(p.done)}).bindTooltip(`${p.done?'✓':'○'} ${p.name} · ${p.date}`));
+  });
+
+  addL(L.marker(d.shipPos,{icon:emojiIcon('🚢',28)}).bindTooltip(`🚢 COSCO BEIJING`));
+
+  const pulseIcon=L.divIcon({html:`
+    <div style="position:relative;width:14px;height:14px">
+      <div style="width:14px;height:14px;border-radius:50%;background:#00d68f;border:2px solid rgba(255,255,255,.25);box-shadow:0 0 10px #00d68f"></div>
+      <div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(0,214,143,.2);animation:pulse-ring 2s infinite"></div>
+    </div>`,className:'',iconAnchor:[7,7]});
+  addL(L.marker(d.shipPos,{icon:pulseIcon}));
+
+  map.fitBounds(L.latLngBounds([...allPts,d.shipPos]).pad(.1));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOAD DEMO — always uses the demo data, ignores typed code
+// ─────────────────────────────────────────────────────────────────────────────
+function loadDemo(key) {
+  const d=DEMOS[key];
+  _currentDemo=d;
+  document.getElementById('inp').value=d.code;
+
+  // skeleton
+  document.getElementById('content').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="skel" style="height:18px;width:55%"></div>
+      <div class="skel" style="height:148px"></div>
+      <div class="skel" style="height:88px"></div>
+      <div class="skel" style="height:210px"></div>
+    </div>`;
+
+  setTimeout(()=>{
+    renderSidebar(d);
+    renderMap(d);
+    startRefresh();
+    notify(d.carrier+' · '+d.code, d.status, d.icon||'📦');
+  },900);
+}
+
+// ─── TRACK BUTTON ────────────────────────────────────────────────────────────
+async function doTrack() {
+  const code=document.getElementById('inp').value.trim();
+  if(!code){document.getElementById('inp').focus();return;}
+
+  showSkeleton();
+
+  try {
+    const res = await fetch(`/api/track?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+
+    if(!res.ok || data.error) {
+      // Se o erro for explicitamente de código não encontrado, mostramos a mensagem real
+      if (res.status === 404 || (data.error && data.error.includes('não encontrado'))) {
+        showError(data.error || 'Código não encontrado');
+        return;
+      }
+      // Outros erros (ex: API offline, chave faltando) podem cair no catch para o demo
+      throw new Error(data.error || 'Erro na API');
+    }
+
+    const d = apiToDemo(data);
+    _currentDemo = d;
+    renderSidebar(d);
+    renderMap(d);
+    startRefresh();
+    notify(d.carrier + ' · ' + d.code, d.status, d.icon || '📦');
+
+  } catch(err) {
+    console.warn('API falhou, usando demo como fallback:', err.message);
+    
+    // Só usamos demo se for erro técnico (chave faltando, erro 500), 
+    // nunca se o código for explicitamente inválido.
+    const up = code.toUpperCase();
+    let key = 'road';
+    if(/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(up)) key='correios';
+    else if(/^(LA|G3|JJ|TP)\d+/.test(up))  key='air';
+    else if(/COSCO|MSC|MAERSK|CMA/i.test(up)) key='sea';
+    else {
+      for(const [k,v] of Object.entries(DEMOS)){
+        if(v.code.toUpperCase()===up){key=k;break;}
+      }
+    }
+    const d=JSON.parse(JSON.stringify(DEMOS[key]));
+    d.code=up;
+    _currentDemo=d;
+    renderSidebar(d);
+    renderMap(d);
+    startRefresh();
+    notify(d.carrier+' · '+d.code, d.status+' (Demonstração)', d.icon||'📦');
+  }
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML = `
+    <div class="empty" style="animation: fadeIn .3s ease">
+      <div class="empty-icon">⚠️</div>
+      <div class="empty-title" style="color:var(--red)">${msg}</div>
+      <div class="empty-hint">Verifique o código digitado e tente novamente.<br>Se o objeto foi postado recentemente, pode levar algumas horas para aparecer.</div>
+      <button class="btn-track" style="margin-top:15px; background:var(--s3)" onclick="location.reload()">Voltar</button>
+    </div>
+  `;
+}
+
+function showSkeleton() {
+  document.getElementById('content').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="skel" style="height:18px;width:55%"></div>
+      <div class="skel" style="height:148px"></div>
+      <div class="skel" style="height:88px"></div>
+      <div class="skel" style="height:210px"></div>
+    </div>`;
+}
+
+// Converte resposta da API PacoteVício para o formato de demo do frontend
+function apiToDemo(apiData) {
+  // A API agora retorna os eventos já normalizados pelo backend
+  const events = (apiData.events || []).map((ev, i) => ({
+    state: i === 0 ? 'active' : 'done',
+    ev: ev.status,
+    loc: [ev.location, ev.detail].filter(Boolean).join(' · '),
+    time: ev.date,
+    // Tenta converter a data para timestamp para cálculos de animação
+    ts: ev.date ? parseDate(ev.date) : Date.now() - i * 3600000,
+  }));
+
+  const lastStatus = apiData.lastStatus || 'Em trânsito';
+
+  // Função auxiliar para parse de data (formato DD/MM/YYYY HH:mm ou similar)
+  function parseDate(dateStr) {
+    try {
+      const [d, t] = dateStr.split(' ');
+      const [day, month, year] = d.split('/');
+      return new Date(`${year}-${month}-${day}T${t || '00:00'}:00`).getTime();
+    } catch(e) { return Date.now(); }
+  }
+
+  // Detecta tipo pela transportadora
+  const carrier = apiData.carrier || 'Correios';
+  let type='road', icon='📦';
+  if(/aliexpress|cainiao/i.test(carrier)) { type='road'; icon='📦'; }
+  if(/shopee/i.test(carrier))             { type='road'; icon='📦'; }
+  if(/anjun|j&t|jtexpress/i.test(carrier)){ type='road'; icon='🚚'; }
+
+  return {
+    code:      apiData.code,
+    carrier,
+    cColor:    '#ffcc00',
+    type,
+    icon,
+    originLL:  [-3.119,-60.022],  // Manaus (padrão — não temos coords reais)
+    destLL:    [-23.55,-46.633],  // SP
+    lastPos:   [-10.9,-37.1],
+    lastPosTime: Date.now()-4*3600000,
+    avgKmh:    60,
+    waypoints: [[-3.119,-60.022],[-5.09,-42.8],[-10.9,-37.1],[-23.55,-46.633]],
+    status:    lastStatus,
+    sub:       carrier + ' · ' + apiData.code,
+    progress:  calcProgress(apiData.lastStatus),
+    events:    events.length ? events : [
+      {state:'active', ev:lastStatus, loc:'', time:'', ts:Date.now()}
+    ],
+  };
+}
+
+function calcProgress(lastStatus) {
+  const map = {
+    'signed':     100,
+    'delivered':  100,
+    'delivering':  85,
+    'customs':     60,
+    'in_transit':  50,
+    'posted':      15,
+  };
+  for(const [k,v] of Object.entries(map)){
+    if(lastStatus && lastStatus.toLowerCase().includes(k)) return v;
+  }
+  return 40;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+document.getElementById('btnTrack').addEventListener('click',doTrack);
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')doTrack()});
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('click',function(){
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+  });
+});
+
+// ── ESTADO GLOBAL ─────────────────────────────────────────────────────────────
+let _isPremium     = localStorage.getItem('rastreio_premium') === 'true';
+let _correlationID = null;
+let _pollInterval  = null;
+let _videoAdShown  = false;
+let _skipCountdown = 5;
+let _skipTimer     = null;
+
+// ── PREMIUM STATE ─────────────────────────────────────────────────────────────
+function applyPremiumState() {
+  document.body.classList.toggle('premium-active', _isPremium);
+  if (_isPremium) {
+    hideVideoAd();
+    const az = document.getElementById('adZone');
+    if (az) az.style.maxHeight = '0';
+  }
+}
+applyPremiumState();
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openPremium() {
+  document.getElementById('modalBg').classList.add('open');
+  switchTab('pix');
+  resetPixState();
+}
+function closePremium() {
+  document.getElementById('modalBg').classList.remove('open');
+  stopPolling();
+}
+function closePremiumOutside(e) {
+  if (e.target === document.getElementById('modalBg')) closePremium();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePremium(); });
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panePix').style.display   = tab === 'pix'   ? 'block' : 'none';
+  document.getElementById('paneFeats').style.display = tab === 'feats' ? 'block' : 'none';
+  document.getElementById('tabPix').classList.toggle('active',   tab === 'pix');
+  document.getElementById('tabFeats').classList.toggle('active', tab === 'feats');
+}
+
+// ── PIX STATES ────────────────────────────────────────────────────────────────
+function showPixState(state) {
+  // state: 'init' | 'qr' | 'ok'
+  ['Init','QR','OK'].forEach(s =>
+    document.getElementById('pixState'+s).style.display = (s.toLowerCase()===state) ? 'block' : 'none'
+  );
+}
+function resetPixState() {
+  stopPolling();
+  _correlationID = null;
+  showPixState('init');
+}
+
+// ── GERAR PIX (chama API OpenPix) ─────────────────────────────────────────────
+async function gerarPix() {
+  const btn = document.querySelector('#pixStateInit .btn-assinar');
+  if (btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/create-charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) throw new Error('Erro HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    _correlationID = data.correlationID;
+    renderQR(data);
+    showPixState('qr');
+    startPolling();
+
+  } catch (err) {
+    console.error('Erro ao gerar Pix:', err);
+    let msg = 'Erro ao gerar Pix';
+    if (err.message.includes('500') || err.message.includes('não configurada')) {
+      msg = 'Erro: OPENPIX_APP_ID não configurada localmente';
+    } else {
+      msg = 'Erro: ' + err.message;
+    }
+    
+    if (btn) { 
+      btn.textContent = '⚠ ' + msg; 
+      btn.style.background = 'var(--red)';
+      btn.disabled = false; 
+    }
+    
+    setTimeout(() => {
+      if (btn) { 
+        btn.textContent = 'Gerar QR Code Pix'; 
+        btn.style.background = '';
+        btn.disabled = false; 
+      }
+    }, 5000);
+  }
+}
+
+// ── RENDERIZAR QR DINÂMICO ────────────────────────────────────────────────────
+function renderQR(data) {
+  const el = document.getElementById('pixStateQR');
+  el.innerHTML = `
+    <div style="text-align:center;padding:8px 0 16px;animation:fadeIn .3s ease">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--grn);letter-spacing:2px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block;animation:blink 1s infinite"></span>
+        AGUARDANDO PAGAMENTO
+      </div>
+
+      <div style="background:#fff;border:4px solid var(--grn);border-radius:14px;padding:14px;display:inline-block;margin-bottom:14px">
+        ${data.qrCodeImage
+          ? `<img src="${data.qrCodeImage}" width="200" height="200" alt="QR Pix" style="display:block;border-radius:6px;filter:none !important">`
+          : `<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#000">QR indisponível</div>`
+        }
+      </div>
+
+      <div style="font-size:28px;font-weight:700;color:var(--grn);margin-bottom:4px">R$ 50,00</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-bottom:16px">Acesso vitalício — pague uma vez</div>
+
+      ${data.brCode ? `
+      <div style="background:var(--s3);border-radius:10px;padding:12px 14px;margin-bottom:12px;text-align:left">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--txt3);letter-spacing:1.5px;margin-bottom:6px">PIX COPIA E COLA</div>
+        <div id="pixPayload" style="font-family:var(--mono);font-size:9px;color:var(--txt2);word-break:break-all;line-height:1.6;background:var(--s2);border-radius:6px;padding:8px;border:1px solid var(--b1)">${data.brCode}</div>
+        <button id="copyBtn" onclick="copyPix()" style="margin-top:8px;width:100%;background:rgba(0,214,143,.1);color:var(--grn);border:1px solid rgba(0,214,143,.3);border-radius:8px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s">
+          📋 Copiar código Pix
+        </button>
+      </div>` : ''}
+
+      <div id="payStatus" style="font-family:var(--mono);font-size:11px;color:var(--txt3);background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.15);border-radius:8px;padding:10px">
+        ⏳ Verificando pagamento automaticamente...
+      </div>
+
+      <button onclick="resetPixState()" style="margin-top:10px;background:transparent;border:none;font-family:var(--mono);font-size:10px;color:var(--txt3);cursor:pointer;text-decoration:underline">
+        ← Voltar
+      </button>
+    </div>`;
+}
+
+// ── COPIAR PIX ────────────────────────────────────────────────────────────────
+function copyPix() {
+  const payload = document.getElementById('pixPayload')?.textContent?.trim();
+  if (!payload) return;
+  const btn = document.getElementById('copyBtn');
+  navigator.clipboard.writeText(payload).then(() => {
+    if (!btn) return;
+    btn.textContent = '✓ Copiado!';
+    btn.style.background = 'rgba(0,214,143,.2)';
+    setTimeout(() => {
+      btn.textContent = '📋 Copiar código Pix';
+      btn.style.background = 'rgba(0,214,143,.1)';
+    }, 3000);
+  }).catch(() => {
+    const el = document.getElementById('pixPayload');
+    if (!el) return;
+    const r = document.createRange();
+    r.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(r);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+  });
+}
+
+// ── POLLING — verifica pagamento a cada 4s ────────────────────────────────────
+function startPolling() {
+  stopPolling();
+  _pollInterval = setInterval(checkPayment, 4000);
+}
+function stopPolling() {
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+}
+async function checkPayment() {
+  if (!_correlationID) return;
+  try {
+    const res  = await fetch(`/api/check-payment?correlationID=${_correlationID}`);
+    const data = await res.json();
+    const statusEl = document.getElementById('payStatus');
+
+    if (data.paid) {
+      stopPolling();
+      if (statusEl) {
+        statusEl.style.cssText += ';background:rgba(0,214,143,.1);border-color:rgba(0,214,143,.3);color:var(--grn)';
+        statusEl.textContent = '✅ Pix confirmado! Liberando acesso...';
+      }
+      setTimeout(() => {
+        _isPremium = true;
+        localStorage.setItem('rastreio_premium', 'true');
+        applyPremiumState();
+        showPixState('ok');
+        setTimeout(closePremium, 2500);
+        notify('✦ Premium ativado!', 'Pix confirmado · Acesso vitalício liberado', '✦');
+      }, 1200);
+
+    } else {
+      const t = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      if (statusEl) statusEl.textContent = `⏳ Aguardando Pix... (${t})`;
+    }
+  } catch (err) { console.error('checkPayment:', err); }
+}
+
+// ── VIDEO AD ──────────────────────────────────────────────────────────────────
+function showVideoAd() {
+  if (_isPremium || _videoAdShown) return;
+  _videoAdShown = true;
+  const wrap = document.getElementById('videoAdWrap');
+  if (!wrap) return;
+  wrap.classList.add('show');
+  const skipBtn  = document.getElementById('skipBtn');
+  const timerLbl = document.getElementById('videoAdTimer');
+  if (!skipBtn || !timerLbl) return;
+  skipBtn.classList.remove('active');
+  skipBtn.textContent = '✕';
+  _skipCountdown = 5;
+  timerLbl.textContent = `pule em ${_skipCountdown}s`;
+  _skipTimer = setInterval(() => {
+    _skipCountdown--;
+    if (_skipCountdown > 0) {
+      timerLbl.textContent = `pule em ${_skipCountdown}s`;
+    } else {
+      clearInterval(_skipTimer);
+      timerLbl.textContent = '';
+      skipBtn.classList.add('active');
+      skipBtn.textContent = '✕ pular agora';
+    }
+  }, 1000);
+}
+function skipVideoAd() {
+  if (!document.getElementById('skipBtn')?.classList.contains('active')) return;
+  hideVideoAd();
+}
+function hideVideoAd() {
+  document.getElementById('videoAdWrap')?.classList.remove('show');
+  if (_skipTimer) { clearInterval(_skipTimer); _skipTimer = null; }
+}
+
+// Mostra video ad 15s após primeiro rastreio
+const _origLoadDemo = loadDemo;
+window.loadDemo = function(key) {
+  _origLoadDemo(key);
+  if (!_isPremium) setTimeout(showVideoAd, 15000);
+};
+</script>
+</body>
+</html>
